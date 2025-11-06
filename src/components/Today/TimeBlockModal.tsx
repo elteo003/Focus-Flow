@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Check } from 'lucide-react';
-import { TimeBlock, SubTask, DEFAULT_CATEGORIES, CategoryType } from '@/types';
+import { Plus, Trash2, Check, Repeat } from 'lucide-react';
+import { TimeBlock, SubTask, DEFAULT_CATEGORIES, CategoryType, RecurrenceType, TimeBlockTemplate } from '@/types';
 import { useTimeBlocks } from '@/hooks/useTimeBlocks';
+import { useTemplates } from '@/hooks/useTemplates';
+import { generateRecurringDates } from '@/utils/recurrence';
 import { toast } from 'sonner';
 
 interface TimeBlockModalProps {
@@ -20,6 +22,7 @@ interface TimeBlockModalProps {
 
 const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockModalProps) => {
   const { addTimeBlock, updateTimeBlock, deleteTimeBlock } = useTimeBlocks();
+  const { templates } = useTemplates();
   
   const [title, setTitle] = useState('');
   const [startTime, setStartTime] = useState('09:00');
@@ -27,6 +30,8 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
   const [category, setCategory] = useState<CategoryType>('work');
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
   const [newSubTaskTitle, setNewSubTaskTitle] = useState('');
+  const [recurrence, setRecurrence] = useState<RecurrenceType>('none');
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
 
   useEffect(() => {
     if (block) {
@@ -35,15 +40,27 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
       setEndTime(block.endTime);
       setCategory(block.category);
       setSubTasks(block.subTasks);
+      setRecurrence(block.recurrence || 'none');
+      setRecurrenceEndDate(block.recurrenceEndDate || '');
     } else {
       setTitle('');
       setStartTime('09:00');
       setEndTime('10:00');
       setCategory('work');
       setSubTasks([]);
+      setRecurrence('none');
+      setRecurrenceEndDate('');
     }
     setNewSubTaskTitle('');
   }, [block, isOpen]);
+
+  const handleTemplateSelect = (template: TimeBlockTemplate) => {
+    setTitle(template.title);
+    setStartTime(template.startTime);
+    setEndTime(template.endTime);
+    setCategory(template.category);
+    setSubTasks(template.subTasks.map(st => ({ ...st, id: Date.now().toString() + Math.random() })));
+  };
 
   const handleAddSubTask = () => {
     if (!newSubTaskTitle.trim()) return;
@@ -68,33 +85,52 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
     setSubTasks(subTasks.filter(st => st.id !== id));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
       toast.error('Inserisci un titolo');
       return;
     }
 
     if (isCreating) {
-      const newBlock: TimeBlock = {
-        id: Date.now().toString(),
+      const baseBlock: Omit<TimeBlock, 'id' | 'date'> = {
         title,
         startTime,
         endTime,
         category,
         subTasks,
-        date,
         completed: false,
         status: 'planned',
+        recurrence: recurrence !== 'none' ? recurrence : undefined,
+        recurrenceEndDate: recurrence !== 'none' && recurrenceEndDate ? recurrenceEndDate : undefined,
       };
-      addTimeBlock(newBlock);
-      toast.success('Attività creata');
+
+      if (recurrence !== 'none') {
+        const dates = generateRecurringDates(date, recurrence, recurrenceEndDate || undefined);
+        for (const blockDate of dates) {
+          await addTimeBlock({
+            ...baseBlock,
+            id: `${Date.now()}-${Math.random()}`,
+            date: blockDate,
+          } as TimeBlock);
+        }
+        toast.success(`${dates.length} attività create con ricorrenza ${recurrence}`);
+      } else {
+        await addTimeBlock({
+          ...baseBlock,
+          id: Date.now().toString(),
+          date,
+        } as TimeBlock);
+        toast.success('Attività creata');
+      }
     } else if (block) {
-      updateTimeBlock(block.id, {
+      await updateTimeBlock(block.id, {
         title,
         startTime,
         endTime,
         category,
         subTasks,
+        recurrence: recurrence !== 'none' ? recurrence : undefined,
+        recurrenceEndDate: recurrence !== 'none' && recurrenceEndDate ? recurrenceEndDate : undefined,
       });
       toast.success('Attività aggiornata');
     }
@@ -185,6 +221,61 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
               </SelectContent>
             </Select>
           </div>
+
+          {/* Templates (only when creating) */}
+          {isCreating && templates.length > 0 && (
+            <div className="space-y-2">
+              <Label>Template</Label>
+              <Select onValueChange={(v) => {
+                const template = templates.find(t => t.id === v);
+                if (template) handleTemplateSelect(template);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleziona un template (opzionale)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map(template => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Recurrence (only when creating) */}
+          {isCreating && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Repeat className="w-4 h-4" />
+                Ricorrenza
+              </Label>
+              <Select value={recurrence} onValueChange={(v) => setRecurrence(v as RecurrenceType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nessuna</SelectItem>
+                  <SelectItem value="daily">Giornaliera</SelectItem>
+                  <SelectItem value="weekly">Settimanale</SelectItem>
+                  <SelectItem value="monthly">Mensile</SelectItem>
+                </SelectContent>
+              </Select>
+              {recurrence !== 'none' && (
+                <div className="space-y-2">
+                  <Label htmlFor="recurrenceEndDate">Data fine ricorrenza (opzionale)</Label>
+                  <Input
+                    id="recurrenceEndDate"
+                    type="date"
+                    value={recurrenceEndDate}
+                    onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                    min={date}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Sub-tasks */}
           <div className="space-y-2">

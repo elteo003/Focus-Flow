@@ -35,6 +35,42 @@ const DataManagement = () => {
     toast.success('Dati esportati con successo!');
   };
 
+  const exportCSV = () => {
+    const headers = ['Data', 'Titolo', 'Inizio', 'Fine', 'Categoria', 'Completato', 'Status', 'Tempo Effettivo (min)'];
+    const rows = timeBlocks.map(block => {
+      const actualMinutes = block.actualStartTime && block.actualEndTime
+        ? Math.floor((new Date(block.actualEndTime).getTime() - new Date(block.actualStartTime).getTime()) / 60000)
+        : '';
+      
+      return [
+        block.date,
+        block.title,
+        block.startTime,
+        block.endTime,
+        block.category,
+        block.completed ? 'Sì' : 'No',
+        block.status,
+        actualMinutes.toString(),
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `chronofocus-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Dati esportati in CSV con successo!');
+  };
+
   const importData = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -88,10 +124,19 @@ const DataManagement = () => {
         <CardTitle>Gestione Dati</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Button onClick={exportData} variant="outline" className="w-full justify-start">
-          <Download className="w-4 h-4 mr-2" />
-          Esporta Dati (JSON)
-        </Button>
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Esporta Dati</p>
+          <div className="flex gap-2">
+            <Button onClick={exportData} variant="outline" className="flex-1">
+              <Download className="w-4 h-4 mr-2" />
+              JSON
+            </Button>
+            <Button onClick={exportCSV} variant="outline" className="flex-1">
+              <Download className="w-4 h-4 mr-2" />
+              CSV
+            </Button>
+          </div>
+        </div>
         
         <Button onClick={importData} variant="outline" className="w-full justify-start">
           <Upload className="w-4 h-4 mr-2" />

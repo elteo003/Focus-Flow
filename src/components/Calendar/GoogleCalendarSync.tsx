@@ -9,7 +9,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatDate } from '@/utils/dateUtils';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
 const GoogleCalendarSync = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,12 +38,45 @@ const GoogleCalendarSync = () => {
     checkToken();
   }, [user]);
 
+  // Refresh token if expired
+  const refreshToken = async (refreshTokenValue: string) => {
+    try {
+      const response = await fetch(GOOGLE_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET || '',
+          refresh_token: refreshTokenValue,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Token refresh failed');
+
+      const data = await response.json();
+      const expiresAt = new Date(Date.now() + (data.expires_in * 1000));
+
+      await supabase.from('google_tokens').update({
+        access_token: data.access_token,
+        expires_at: expiresAt.toISOString(),
+      }).eq('user_id', user!.id);
+
+      return data.access_token;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      toast.error('Errore nel refresh del token');
+      return null;
+    }
+  };
+
   // Capture OAuth token from URL after redirect
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('access_token') && user) {
       const params = new URLSearchParams(hash.substring(1));
       const token = params.get('access_token');
+      const refreshTokenValue = params.get('refresh_token');
       const expiresIn = parseInt(params.get('expires_in') || '3600');
       
       if (token) {
@@ -51,6 +86,7 @@ const GoogleCalendarSync = () => {
           await supabase.from('google_tokens').upsert({
             user_id: user.id,
             access_token: token,
+            refresh_token: refreshTokenValue || null,
             expires_at: expiresAt.toISOString(),
             scope: GOOGLE_SCOPES,
           });
@@ -76,6 +112,8 @@ const GoogleCalendarSync = () => {
     authUrl.searchParams.append('redirect_uri', window.location.origin + '/');
     authUrl.searchParams.append('response_type', 'token');
     authUrl.searchParams.append('scope', GOOGLE_SCOPES);
+    authUrl.searchParams.append('access_type', 'offline'); // Request refresh token if possible
+    authUrl.searchParams.append('prompt', 'consent'); // Force consent to get refresh token
     window.location.href = authUrl.toString();
   };
 
@@ -84,9 +122,9 @@ const GoogleCalendarSync = () => {
     
     setIsLoading(true);
     try {
-      const { data: tokenData } = await supabase
+      let { data: tokenData } = await supabase
         .from('google_tokens')
-        .select('access_token')
+        .select('access_token, refresh_token, expires_at')
         .eq('user_id', user.id)
         .single();
 
@@ -94,6 +132,24 @@ const GoogleCalendarSync = () => {
         toast.error('Token non trovato. Riconnetti Google Calendar');
         setIsConnected(false);
         return;
+      }
+
+      // Check if token is expired and refresh if needed
+      if (tokenData.expires_at && new Date(tokenData.expires_at) <= new Date()) {
+        if (tokenData.refresh_token) {
+          const newToken = await refreshToken(tokenData.refresh_token);
+          if (newToken) {
+            tokenData = { ...tokenData, access_token: newToken };
+          } else {
+            toast.error('Token scaduto. Riconnetti Google Calendar');
+            setIsConnected(false);
+            return;
+          }
+        } else {
+          toast.error('Token scaduto. Riconnetti Google Calendar');
+          setIsConnected(false);
+          return;
+        }
       }
 
       const today = formatDate(new Date());

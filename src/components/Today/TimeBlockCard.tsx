@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { TimeBlock } from '@/types';
 import { cn } from '@/lib/utils';
 import { Clock, CheckCircle2, Calendar } from 'lucide-react';
@@ -9,20 +10,27 @@ interface TimeBlockCardProps {
   onClick: () => void;
 }
 
-const TimeBlockCard = ({ block, onClick }: TimeBlockCardProps) => {
-  const startMinutes = timeToMinutes(block.startTime);
-  const endMinutes = timeToMinutes(block.endTime);
-  const durationMinutes = endMinutes - startMinutes;
-  
-  // Position from 6:00 (360 minutes)
-  const topOffset = ((startMinutes - 360) / 60) * 64; // 64px per hour
-  const height = (durationMinutes / 60) * 64;
+const TimeBlockCard = memo(({ block, onClick }: TimeBlockCardProps) => {
+  const { topOffset, height } = useMemo(() => {
+    const startMinutes = timeToMinutes(block.startTime);
+    const endMinutes = timeToMinutes(block.endTime);
+    const durationMinutes = endMinutes - startMinutes;
+    
+    // Position from 6:00 (360 minutes)
+    const top = ((startMinutes - 360) / 60) * 64; // 64px per hour
+    const h = (durationMinutes / 60) * 64;
+    
+    return { topOffset: top, height: h };
+  }, [block.startTime, block.endTime]);
 
-  const completedSubTasks = block.subTasks.filter(st => st.completed).length;
-  const totalSubTasks = block.subTasks.length;
-  const progress = totalSubTasks > 0 ? (completedSubTasks / totalSubTasks) * 100 : 0;
+  const { completedSubTasks, totalSubTasks, progress } = useMemo(() => {
+    const completed = block.subTasks.filter(st => st.completed).length;
+    const total = block.subTasks.length;
+    const prog = total > 0 ? (completed / total) * 100 : 0;
+    return { completedSubTasks: completed, totalSubTasks: total, progress: prog };
+  }, [block.subTasks]);
 
-  const getCategoryColor = (category: string) => {
+  const categoryColor = useMemo(() => {
     const colors: Record<string, string> = {
       work: 'bg-[hsl(221,83%,53%)] border-[hsl(221,83%,43%)]',
       study: 'bg-[hsl(142,71%,45%)] border-[hsl(142,71%,35%)]',
@@ -30,8 +38,8 @@ const TimeBlockCard = ({ block, onClick }: TimeBlockCardProps) => {
       health: 'bg-[hsl(0,84%,60%)] border-[hsl(0,84%,50%)]',
       other: 'bg-[hsl(262,83%,58%)] border-[hsl(262,83%,48%)]',
     };
-    return colors[category] || colors.other;
-  };
+    return colors[block.category] || colors.other;
+  }, [block.category]);
 
   return (
     <div
@@ -40,7 +48,7 @@ const TimeBlockCard = ({ block, onClick }: TimeBlockCardProps) => {
         "absolute left-16 right-4 rounded-lg border-2 p-3 cursor-pointer transition-all",
         "hover:shadow-card-hover hover:scale-[1.02]",
         "text-white font-medium",
-        getCategoryColor(block.category),
+        categoryColor,
         block.status === 'completed' && "opacity-75",
         block.status === 'active' && "ring-2 ring-white/50 shadow-lg",
         block.externalEvent && "opacity-60 cursor-default border-dashed"
@@ -84,6 +92,8 @@ const TimeBlockCard = ({ block, onClick }: TimeBlockCardProps) => {
       )}
     </div>
   );
-};
+});
+
+TimeBlockCard.displayName = 'TimeBlockCard';
 
 export default TimeBlockCard;

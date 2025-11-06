@@ -14,6 +14,8 @@ export interface SubTask {
 
 export type TimeBlockStatus = 'planned' | 'active' | 'paused' | 'completed';
 
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export interface TimeBlock {
   id: string;
   title: string;
@@ -28,6 +30,20 @@ export interface TimeBlock {
   actualEndTime?: string;   // ISO timestamp
   pausedDuration?: number;  // milliseconds
   externalEvent?: boolean;  // if synced from external calendar
+  recurrence?: RecurrenceType;
+  recurrenceEndDate?: string; // YYYY-MM-DD format
+  templateId?: string; // Reference to template if created from one
+}
+
+export interface TimeBlockTemplate {
+  id: string;
+  name: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  category: CategoryType;
+  subTasks: SubTask[];
+  userId?: string; // Optional, for user-specific templates
 }
 
 export const DEFAULT_CATEGORIES: Category[] = [

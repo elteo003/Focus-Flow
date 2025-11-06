@@ -5,6 +5,10 @@ const CurrentTimeLine = () => {
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
 
   useEffect(() => {
+    // Update immediately
+    setCurrentTime(getCurrentTime());
+    
+    // Update every minute for display, but check every second for highlight
     const interval = setInterval(() => {
       setCurrentTime(getCurrentTime());
     }, 60000); // Update every minute

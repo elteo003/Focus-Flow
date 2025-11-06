@@ -2,15 +2,16 @@ import { memo, useMemo } from 'react';
 import { TimeBlock } from '@/types';
 import { cn } from '@/lib/utils';
 import { Clock, CheckCircle2, Calendar } from 'lucide-react';
-import { timeToMinutes } from '@/utils/dateUtils';
+import { timeToMinutes, isTimeInRange } from '@/utils/dateUtils';
 import TimerControls from './TimerControls';
 
 interface TimeBlockCardProps {
   block: TimeBlock;
   onClick: () => void;
+  currentTime?: string; // Current time to check if line is in block range
 }
 
-const TimeBlockCard = memo(({ block, onClick }: TimeBlockCardProps) => {
+const TimeBlockCard = memo(({ block, onClick, currentTime }: TimeBlockCardProps) => {
   const { topOffset, height } = useMemo(() => {
     const startMinutes = timeToMinutes(block.startTime);
     const endMinutes = timeToMinutes(block.endTime);
@@ -41,17 +42,25 @@ const TimeBlockCard = memo(({ block, onClick }: TimeBlockCardProps) => {
     return colors[block.category] || colors.other;
   }, [block.category]);
 
+  // Check if current time line is within this block's time range
+  const isCurrentTimeInBlock = useMemo(() => {
+    if (!currentTime || block.status !== 'planned') return false;
+    return isTimeInRange(currentTime, block.startTime, block.endTime);
+  }, [currentTime, block.startTime, block.endTime, block.status]);
+
   return (
     <div
       onClick={onClick}
       className={cn(
-        "absolute left-16 right-4 rounded-lg border-2 p-3 cursor-pointer transition-all",
+        "absolute left-16 right-4 rounded-lg border-2 p-3 cursor-pointer transition-all duration-300",
         "hover:shadow-card-hover hover:scale-[1.02]",
         "text-white font-medium",
         categoryColor,
         block.status === 'completed' && "opacity-75",
         block.status === 'active' && "ring-2 ring-white/50 shadow-lg",
-        block.externalEvent && "opacity-60 cursor-default border-dashed"
+        block.externalEvent && "opacity-60 cursor-default border-dashed",
+        // Highlight when current time line enters the block (and it's planned)
+        isCurrentTimeInBlock && "ring-4 ring-yellow-400/60 shadow-2xl shadow-yellow-400/30 animate-pulse border-yellow-400"
       )}
       style={{
         top: `${topOffset}px`,
@@ -63,6 +72,11 @@ const TimeBlockCard = memo(({ block, onClick }: TimeBlockCardProps) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <h3 className="text-sm font-semibold truncate">{block.title}</h3>
+            {isCurrentTimeInBlock && (
+              <span className="text-xs bg-yellow-400/20 text-yellow-200 px-1.5 py-0.5 rounded animate-pulse">
+                Ora
+              </span>
+            )}
             {block.externalEvent && <Calendar className="w-3 h-3 flex-shrink-0" />}
           </div>
           <div className="flex items-center gap-1 mt-1 text-xs opacity-90">

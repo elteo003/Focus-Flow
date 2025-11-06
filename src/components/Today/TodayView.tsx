@@ -20,8 +20,17 @@ const TodayView = () => {
 
   const today = formatDate(new Date());
   const todayBlocks = getBlocksForDate(today);
-  const currentTime = getCurrentTime();
+  const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const currentHour = parseTime(currentTime).hours;
+
+  // Update current time every second for real-time highlight
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(getCurrentTime());
+    }, 1000); // Update every second for smooth highlight
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Schedule notifications every minute
   useEffect(() => {
@@ -120,6 +129,7 @@ const TodayView = () => {
               key={block.id}
               block={block}
               onClick={() => handleBlockClick(block)}
+              currentTime={currentTime}
             />
           ))}
         </div>

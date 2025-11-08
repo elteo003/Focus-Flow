@@ -57,7 +57,7 @@ export const useTimeBlocks = () => {
           status: block.status as any,
           actualStartTime: block.actual_start_time || undefined,
           actualEndTime: block.actual_end_time || undefined,
-          pausedDuration: (block as any).paused_duration || undefined,
+          pausedDuration: (block as any).paused_duration ?? 0,
           externalEvent: block.external_event || false,
           subTasks: (block.sub_tasks as any) || [],
         }));
@@ -119,6 +119,7 @@ export const useTimeBlocks = () => {
               external_event: block.externalEvent || false,
               external_id: block.externalEvent ? block.id : null,
               sub_tasks: block.subTasks || [],
+              paused_duration: block.pausedDuration ?? 0,
             } as any);
           
           if (response.error) {

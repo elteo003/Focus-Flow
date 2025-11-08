@@ -93,6 +93,7 @@ export type Database = {
           end_time: string
           external_event: boolean | null
           external_id: string | null
+          paused_duration: number | null
           id: string
           start_time: string
           status: string | null
@@ -111,6 +112,7 @@ export type Database = {
           end_time: string
           external_event?: boolean | null
           external_id?: string | null
+          paused_duration?: number | null
           id?: string
           start_time: string
           status?: string | null
@@ -129,6 +131,7 @@ export type Database = {
           end_time?: string
           external_event?: boolean | null
           external_id?: string | null
+          paused_duration?: number | null
           id?: string
           start_time?: string
           status?: string | null

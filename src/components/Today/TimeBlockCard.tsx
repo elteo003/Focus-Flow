@@ -57,10 +57,10 @@ const TimeBlockCard = memo(({ block, onClick, currentTime }: TimeBlockCardProps)
         "text-white font-medium",
         categoryColor,
         block.status === 'completed' && "opacity-75",
-        block.status === 'active' && "ring-2 ring-white/50 shadow-lg",
+        block.status === 'active' && "ring-2 ring-white/40 shadow-lg",
         block.externalEvent && "opacity-60 cursor-default border-dashed",
         // Highlight when current time line enters the block (and it's planned)
-        isCurrentTimeInBlock && "ring-4 ring-yellow-400/60 shadow-2xl shadow-yellow-400/30 animate-pulse border-yellow-400"
+        isCurrentTimeInBlock && "ring-4 ring-yellow-300/70 border-yellow-300 animate-[pulse_4s_ease-in-out_infinite]"
       )}
       style={{
         top: `${topOffset}px`,
@@ -73,7 +73,7 @@ const TimeBlockCard = memo(({ block, onClick, currentTime }: TimeBlockCardProps)
           <div className="flex items-center gap-1">
             <h3 className="text-sm font-semibold truncate">{block.title}</h3>
             {isCurrentTimeInBlock && (
-              <span className="text-xs bg-yellow-400/20 text-yellow-200 px-1.5 py-0.5 rounded animate-pulse">
+              <span className="text-xs bg-yellow-200/30 text-yellow-100 px-1.5 py-0.5 rounded-full animate-[pulse_4s_ease-in-out_infinite]">
                 Ora
               </span>
             )}

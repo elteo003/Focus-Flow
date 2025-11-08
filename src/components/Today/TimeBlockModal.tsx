@@ -102,6 +102,7 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
         status: 'planned',
         recurrence: recurrence !== 'none' ? recurrence : undefined,
         recurrenceEndDate: recurrence !== 'none' && recurrenceEndDate ? recurrenceEndDate : undefined,
+        pausedDuration: 0,
       };
 
       if (recurrence !== 'none') {

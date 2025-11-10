@@ -151,7 +151,7 @@ export const TaskPoolDrawer = ({
         style={{
           y: motionY,
           height: sheetHeight,
-          bottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 88px)' : '108px',
+          bottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 148px)' : '108px',
           right: isMobile ? 'auto' : 'clamp(32px, 6vw, 72px)',
           left: isMobile ? '50%' : 'auto',
         }}

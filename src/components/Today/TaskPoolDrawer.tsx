@@ -138,17 +138,16 @@ export const TaskPoolDrawer = ({
         onClick={() => onStateChange('closed')}
       />
 
-      <motion.div
+      <div
         className={cn(
-          'pointer-events-none fixed inset-0 z-[54] flex justify-end sm:pr-6',
+          'pointer-events-none fixed inset-0 z-[54] flex justify-end sm:pr-6 transition-opacity duration-300',
           isOpen ? 'opacity-100' : 'opacity-0',
         )}
-        style={{ y: motionY }}
       >
         <div className="relative flex h-full w-[min(420px,calc(100vw-32px))] flex-col justify-end">
           <div className="absolute inset-x-0 bottom-0 h-full rounded-[32px] bg-background/70 shadow-[0_25px_60px_-28px_rgba(15,23,42,0.55)] backdrop-blur-xl" />
         </div>
-      </motion.div>
+      </div>
 
       <motion.div
         drag="y"

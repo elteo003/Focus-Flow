@@ -49,6 +49,7 @@ const TodayView = () => {
   const currentHour = parseTime(currentTime).hours;
   const gridRef = useRef<HTMLDivElement>(null);
   const pointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialPointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -113,7 +114,12 @@ const TodayView = () => {
       if (!grid) return null;
 
       const rect = grid.getBoundingClientRect();
-      if (coordinates.y < rect.top || coordinates.y > rect.bottom) {
+      if (
+        coordinates.y < rect.top ||
+        coordinates.y > rect.bottom ||
+        coordinates.x < rect.left ||
+        coordinates.x > rect.right
+      ) {
         return null;
       }
 
@@ -156,9 +162,12 @@ const TodayView = () => {
       setDraggingTaskId(task.id);
       const activator = event.activatorEvent;
       if ('clientX' in activator && 'clientY' in activator) {
-        pointerRef.current = { x: activator.clientX, y: activator.clientY };
+        const pointer = { x: activator.clientX, y: activator.clientY };
+        pointerRef.current = pointer;
+        initialPointerRef.current = pointer;
         updateDropPreview(pointerRef.current);
       }
+      setDrawerState(prev => (prev === 'expanded' ? prev : 'peek'));
     },
     [taskPoolTasks, updateDropPreview],
   );
@@ -167,8 +176,8 @@ const TodayView = () => {
     (event: DragMoveEvent) => {
       if (!draggingTaskId) return;
       pointerRef.current = {
-        x: pointerRef.current.x + event.delta.x,
-        y: pointerRef.current.y + event.delta.y,
+        x: initialPointerRef.current.x + event.delta.x,
+        y: initialPointerRef.current.y + event.delta.y,
       };
       updateDropPreview(pointerRef.current);
     },
@@ -230,10 +239,13 @@ const TodayView = () => {
       const slot = getDropSlotFromPointer(pointerRef.current);
       if (slot) {
         await scheduleTask(activeTask, slot);
+        setDrawerState('peek');
       }
 
       setDraggingTaskId(null);
       setDropPreview(null);
+      pointerRef.current = { x: 0, y: 0 };
+      initialPointerRef.current = { x: 0, y: 0 };
     },
     [getDropSlotFromPointer, reorderTasks, scheduleTask, taskPoolTasks],
   );
@@ -241,6 +253,8 @@ const TodayView = () => {
   const handleDragCancel = useCallback(() => {
     setDraggingTaskId(null);
     setDropPreview(null);
+    pointerRef.current = { x: 0, y: 0 };
+    initialPointerRef.current = { x: 0, y: 0 };
   }, []);
 
   const draggingTask = useMemo(() => taskPoolTasks.find(task => task.id === draggingTaskId) ?? null, [draggingTaskId, taskPoolTasks]);

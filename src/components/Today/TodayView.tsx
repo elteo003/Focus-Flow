@@ -43,6 +43,7 @@ const TodayView = () => {
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dropPreview, setDropPreview] = useState<{ start: string; end: string } | null>(null);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const previousDrawerStateRef = useRef<DrawerState>('closed');
 
   const today = formatDate(new Date());
   const todayBlocks = getBlocksForDate(today);
@@ -162,6 +163,8 @@ const TodayView = () => {
       if (!task) return;
       setDraggingTaskId(task.id);
       setIsCategoryMenuOpen(false);
+      previousDrawerStateRef.current = drawerState;
+      setDrawerState('closed');
       const activator = event.activatorEvent;
       if ('clientX' in activator && 'clientY' in activator) {
         const pointer = { x: activator.clientX, y: activator.clientY };
@@ -169,9 +172,8 @@ const TodayView = () => {
         initialPointerRef.current = pointer;
         updateDropPreview(pointerRef.current);
       }
-      setDrawerState(prev => (prev === 'closed' ? 'peek' : prev));
     },
-    [taskPoolTasks, updateDropPreview],
+    [taskPoolTasks, updateDropPreview, drawerState],
   );
 
   const handleDragMove = useCallback(
@@ -218,8 +220,7 @@ const TodayView = () => {
       const activeTask = taskPoolTasks.find(item => item.id === active.id);
 
       if (!activeTask) {
-        setDraggingTaskId(null);
-        setDropPreview(null);
+        resetDragState();
         return;
       }
 
@@ -233,8 +234,7 @@ const TodayView = () => {
           const reordered = arrayMove(taskPoolTasks, oldIndex, newIndex);
           await reorderTasks(reordered);
         }
-        setDraggingTaskId(null);
-        setDropPreview(null);
+        resetDragState();
         return;
       }
 
@@ -243,20 +243,18 @@ const TodayView = () => {
         await scheduleTask(activeTask, slot);
       }
 
-      setDraggingTaskId(null);
-      setDropPreview(null);
-      pointerRef.current = { x: 0, y: 0 };
-      initialPointerRef.current = { x: 0, y: 0 };
+      resetDragState();
     },
-    [getDropSlotFromPointer, reorderTasks, scheduleTask, taskPoolTasks],
+    [getDropSlotFromPointer, reorderTasks, resetDragState, scheduleTask, taskPoolTasks],
   );
 
-  const handleDragCancel = useCallback(() => {
+  const resetDragState = useCallback(() => {
     setDraggingTaskId(null);
     setDropPreview(null);
     setIsCategoryMenuOpen(false);
     pointerRef.current = { x: 0, y: 0 };
     initialPointerRef.current = { x: 0, y: 0 };
+    setDrawerState(previousDrawerStateRef.current);
   }, []);
 
   const draggingTask = useMemo(() => taskPoolTasks.find(task => task.id === draggingTaskId) ?? null, [draggingTaskId, taskPoolTasks]);

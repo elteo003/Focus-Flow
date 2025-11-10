@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Bell, BellOff } from 'lucide-react';
-import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, DragCancelEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
 import TimeSlot from './TimeSlot';
@@ -42,6 +42,8 @@ const TodayView = () => {
   const [drawerState, setDrawerState] = useState<DrawerState>('closed');
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dropPreview, setDropPreview] = useState<{ start: string; end: string } | null>(null);
+  const [draggingSlotLabel, setDraggingSlotLabel] = useState<string | null>(null);
+  const [isDraggingFromPool, setIsDraggingFromPool] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const previousDrawerStateRef = useRef<DrawerState>('closed');
 
@@ -65,6 +67,8 @@ const TodayView = () => {
   const resetDragState = useCallback(() => {
     setDraggingTaskId(null);
     setDropPreview(null);
+    setDraggingSlotLabel(null);
+    setIsDraggingFromPool(false);
     setIsCategoryMenuOpen(false);
     pointerRef.current = { x: 0, y: 0 };
     initialPointerRef.current = { x: 0, y: 0 };
@@ -178,15 +182,20 @@ const TodayView = () => {
       setIsCategoryMenuOpen(false);
       previousDrawerStateRef.current = drawerState;
       setDrawerState('closed');
+      setIsDraggingFromPool(true);
       const activator = event.activatorEvent;
       if ('clientX' in activator && 'clientY' in activator) {
         const pointer = { x: activator.clientX, y: activator.clientY };
         pointerRef.current = pointer;
         initialPointerRef.current = pointer;
         updateDropPreview(pointerRef.current);
+        const slot = getDropSlotFromPointer(pointerRef.current);
+        if (slot) {
+          setDraggingSlotLabel(`${slot.start} – ${slot.end}`);
+        }
       }
     },
-    [taskPoolTasks, updateDropPreview, drawerState],
+    [taskPoolTasks, updateDropPreview, drawerState, getDropSlotFromPointer],
   );
 
   const handleDragMove = useCallback(
@@ -197,8 +206,14 @@ const TodayView = () => {
         y: initialPointerRef.current.y + event.delta.y,
       };
       updateDropPreview(pointerRef.current);
+      const slot = getDropSlotFromPointer(pointerRef.current);
+      if (slot) {
+        setDraggingSlotLabel(`${slot.start} – ${slot.end}`);
+      } else {
+        setDraggingSlotLabel(null);
+      }
     },
-    [draggingTaskId, updateDropPreview],
+    [draggingTaskId, getDropSlotFromPointer, updateDropPreview],
   );
 
   const scheduleTask = useCallback(
@@ -343,7 +358,14 @@ const TodayView = () => {
                   height: `${((timeToMinutes(dropPreview.end) - timeToMinutes(dropPreview.start)) / 60) * PIXELS_PER_HOUR}px`,
                 }}
               >
-                <div className="h-full rounded-lg border-2 border-dashed border-primary/70 bg-primary/10" />
+                <div className="flex h-full flex-col justify-between rounded-lg border-[3px] border-primary/80 bg-primary/10 shadow-[0_16px_40px_-24px_rgba(59,130,246,0.55)]">
+                  <span className="pointer-events-none select-none rounded-t-md bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+                    {draggingSlotLabel ?? `${dropPreview.start} – ${dropPreview.end}`}
+                  </span>
+                  <span className="pointer-events-none select-none rounded-b-md bg-primary/15 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-primary/70">
+                    Posiziona qui
+                  </span>
+                </div>
               </div>
             )}
 
@@ -372,12 +394,19 @@ const TodayView = () => {
         onDeleteTask={handleDeleteTask}
         categoryMenuOpen={isCategoryMenuOpen}
         onCategoryMenuOpenChange={setIsCategoryMenuOpen}
+        isDraggingFromPool={isDraggingFromPool}
       />
 
-      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' }}>
+      <DragOverlay dropAnimation={{ duration: 160, easing: 'cubic-bezier(0.25, 0.8, 0.25, 1)' }}>
         {draggingTask ? (
-          <div className="w-[90vw] max-w-lg">
+          <div className="w-[90vw] max-w-lg overflow-hidden rounded-[24px] border border-primary/25 bg-card/95 shadow-[0_28px_65px_-28px_rgba(59,130,246,0.55)] ring-2 ring-primary/35 backdrop-blur-md">
             <TaskPoolRow task={draggingTask} onToggle={() => {}} onDelete={() => {}} />
+            {draggingSlotLabel && (
+              <div className="flex items-center justify-center gap-2 bg-primary/10 py-2 text-xs font-semibold text-primary">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                {draggingSlotLabel}
+              </div>
+            )}
           </div>
         ) : null}
       </DragOverlay>

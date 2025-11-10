@@ -34,6 +34,7 @@ export interface TaskPoolDrawerProps {
   onEditTask?: (id: string) => void;
   categoryMenuOpen?: boolean;
   onCategoryMenuOpenChange?: (open: boolean) => void;
+  isDraggingFromPool?: boolean;
 }
 
 export const TaskPoolDrawer = ({
@@ -46,6 +47,7 @@ export const TaskPoolDrawer = ({
   onDeleteTask,
   categoryMenuOpen,
   onCategoryMenuOpenChange,
+  isDraggingFromPool = false,
 }: TaskPoolDrawerProps) => {
   const [viewportHeight, setViewportHeight] = useState<number>(() => (typeof window !== 'undefined' ? window.innerHeight : 800));
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -133,7 +135,7 @@ export const TaskPoolDrawer = ({
         type="button"
         className={cn(
           'fixed inset-0 z-[54] bg-background/45 backdrop-blur-sm transition-opacity duration-300',
-          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+          isOpen && !isDraggingFromPool ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
         )}
         onClick={() => onStateChange('closed')}
       />

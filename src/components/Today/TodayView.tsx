@@ -62,6 +62,15 @@ const TodayView = () => {
     }),
   );
 
+  const resetDragState = useCallback(() => {
+    setDraggingTaskId(null);
+    setDropPreview(null);
+    setIsCategoryMenuOpen(false);
+    pointerRef.current = { x: 0, y: 0 };
+    initialPointerRef.current = { x: 0, y: 0 };
+    setDrawerState(previousDrawerStateRef.current);
+  }, []);
+
   useEffect(() => {
     if (!selectedBlock) return;
     const updated = todayBlocks.find(block => block.id === selectedBlock.id);
@@ -247,15 +256,6 @@ const TodayView = () => {
     },
     [getDropSlotFromPointer, reorderTasks, resetDragState, scheduleTask, taskPoolTasks],
   );
-
-  const resetDragState = useCallback(() => {
-    setDraggingTaskId(null);
-    setDropPreview(null);
-    setIsCategoryMenuOpen(false);
-    pointerRef.current = { x: 0, y: 0 };
-    initialPointerRef.current = { x: 0, y: 0 };
-    setDrawerState(previousDrawerStateRef.current);
-  }, []);
 
   const draggingTask = useMemo(() => taskPoolTasks.find(task => task.id === draggingTaskId) ?? null, [draggingTaskId, taskPoolTasks]);
 

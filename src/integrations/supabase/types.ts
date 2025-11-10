@@ -82,6 +82,50 @@ export type Database = {
         }
         Relationships: []
       }
+      task_pool: {
+        Row: {
+          category: string
+          completed: boolean
+          created_at: string
+          id: string
+          notes: string | null
+          position: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          position?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          notes?: string | null
+          position?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_pool_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_blocks: {
         Row: {
           actual_end_time: string | null

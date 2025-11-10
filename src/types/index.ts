@@ -35,6 +35,19 @@ export interface TimeBlock {
   templateId?: string; // Reference to template if created from one
 }
 
+export interface TaskPoolTask {
+  id: string;
+  title: string;
+  category: CategoryType;
+  completed: boolean;
+  position: number;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const DEFAULT_TASK_POOL_DURATION_MINUTES = 60;
+
 export interface TimeBlockTemplate {
   id: string;
   name: string;

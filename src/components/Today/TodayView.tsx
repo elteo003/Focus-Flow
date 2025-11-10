@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Bell, BellOff } from 'lucide-react';
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Button } from '@/components/ui/button';
 import TimeSlot from './TimeSlot';
 import TimeBlockCard from './TimeBlockCard';
@@ -7,23 +9,56 @@ import CurrentTimeLine from './CurrentTimeLine';
 import TimeBlockModal from './TimeBlockModal';
 import { useTimeBlocks } from '@/hooks/useTimeBlocks';
 import { useNotifications } from '@/hooks/useNotifications';
-import { formatDate, getCurrentTime, parseTime } from '@/utils/dateUtils';
-import { TimeBlock } from '@/types';
+import { useTaskPool } from '@/hooks/useTaskPool';
+import { formatDate, getCurrentTime, minutesToTime, parseTime, timeToMinutes } from '@/utils/dateUtils';
+import { TaskPoolTask, TimeBlock } from '@/types';
 import { toast } from 'sonner';
+import { TaskPoolDrawer } from './TaskPoolDrawer';
+import { TaskPoolRow } from './TaskPoolRow';
+
+const PIXELS_PER_HOUR = 64;
+const DAY_START_MINUTES = 6 * 60;
+const DAY_END_MINUTES = 24 * 60;
+
+type DrawerState = 'closed' | 'peek' | 'expanded';
 
 const TodayView = () => {
-  const { getBlocksForDate, updateTimeBlock } = useTimeBlocks();
+  const { getBlocksForDate, updateTimeBlock, addTimeBlock } = useTimeBlocks();
   const { permission, requestPermission, scheduleNotifications } = useNotifications();
+  const {
+    tasks: taskPoolTasks,
+    remainingTasks,
+    loading: taskPoolLoading,
+    addTask,
+    updateTask,
+    deleteTask,
+    reorderTasks,
+    defaultDuration,
+  } = useTaskPool();
+
   const [selectedBlock, setSelectedBlock] = useState<TimeBlock | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [drawerState, setDrawerState] = useState<DrawerState>('closed');
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dropPreview, setDropPreview] = useState<{ start: string; end: string } | null>(null);
 
   const today = formatDate(new Date());
   const todayBlocks = getBlocksForDate(today);
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const currentHour = parseTime(currentTime).hours;
+  const gridRef = useRef<HTMLDivElement>(null);
+  const pointerRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Keep selected block in sync with latest data (optimistic updates / realtime)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 8,
+      },
+    }),
+  );
+
   useEffect(() => {
     if (!selectedBlock) return;
     const updated = todayBlocks.find(block => block.id === selectedBlock.id);
@@ -32,16 +67,13 @@ const TodayView = () => {
     }
   }, [selectedBlock, todayBlocks]);
 
-  // Update current time every second for real-time highlight
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(getCurrentTime());
-    }, 1000); // Update every second for smooth highlight
-
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Schedule notifications every minute
   useEffect(() => {
     if (permission === 'granted') {
       scheduleNotifications(todayBlocks);
@@ -61,7 +93,7 @@ const TodayView = () => {
     }
   };
 
-  const hours = Array.from({ length: 18 }, (_, i) => i + 6); // 6:00 to 23:00
+  const hours = useMemo(() => Array.from({ length: 18 }, (_, index) => index + 6), []);
 
   const handleBlockClick = (block: TimeBlock) => {
     setSelectedBlock(block);
@@ -75,84 +107,261 @@ const TodayView = () => {
     setIsModalOpen(true);
   };
 
+  const getDropSlotFromPointer = useCallback(
+    (coordinates: { x: number; y: number }) => {
+      const grid = gridRef.current;
+      if (!grid) return null;
+
+      const rect = grid.getBoundingClientRect();
+      if (coordinates.y < rect.top || coordinates.y > rect.bottom) {
+        return null;
+      }
+
+      const relativeY = coordinates.y - rect.top;
+      const minutesPerPixel = 60 / PIXELS_PER_HOUR;
+      const minutesOffset = relativeY * minutesPerPixel;
+      const absoluteMinutes = DAY_START_MINUTES + minutesOffset;
+
+      const snappedMinutes = Math.max(
+        DAY_START_MINUTES,
+        Math.min(
+          23 * 60,
+          Math.round(absoluteMinutes / 15) * 15,
+        ),
+      );
+
+      const duration = defaultDuration ?? 60;
+      const endMinutes = Math.min(DAY_END_MINUTES, snappedMinutes + duration);
+
+      return {
+        start: minutesToTime(snappedMinutes),
+        end: minutesToTime(endMinutes),
+      };
+    },
+    [defaultDuration],
+  );
+
+  const updateDropPreview = useCallback(
+    (coords: { x: number; y: number }) => {
+      const slot = getDropSlotFromPointer(coords);
+      setDropPreview(slot);
+    },
+    [getDropSlotFromPointer],
+  );
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const task = taskPoolTasks.find(item => item.id === event.active.id);
+      if (!task) return;
+      setDraggingTaskId(task.id);
+      const activator = event.activatorEvent;
+      if ('clientX' in activator && 'clientY' in activator) {
+        pointerRef.current = { x: activator.clientX, y: activator.clientY };
+        updateDropPreview(pointerRef.current);
+      }
+    },
+    [taskPoolTasks, updateDropPreview],
+  );
+
+  const handleDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      if (!draggingTaskId) return;
+      pointerRef.current = {
+        x: pointerRef.current.x + event.delta.x,
+        y: pointerRef.current.y + event.delta.y,
+      };
+      updateDropPreview(pointerRef.current);
+    },
+    [draggingTaskId, updateDropPreview],
+  );
+
+  const scheduleTask = useCallback(
+    async (task: TaskPoolTask, slot: { start: string; end: string }) => {
+      try {
+        const newBlock: TimeBlock = {
+          id: `${Date.now()}-${Math.random()}`,
+          title: task.title,
+          startTime: slot.start,
+          endTime: slot.end,
+          category: task.category,
+          subTasks: [],
+          date: today,
+          completed: false,
+          status: 'planned',
+          pausedDuration: 0,
+        };
+        await addTimeBlock(newBlock);
+        await deleteTask(task.id);
+        toast.success(`"${task.title}" aggiunta alla giornata`);
+      } catch (error) {
+        console.error('Errore nella programmazione dal Task-Pool', error);
+        toast.error('Impossibile programmare l\'attività');
+      }
+    },
+    [addTimeBlock, deleteTask, today],
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      const activeTask = taskPoolTasks.find(item => item.id === active.id);
+
+      if (!activeTask) {
+        setDraggingTaskId(null);
+        setDropPreview(null);
+        return;
+      }
+
+      const activeContainer = active.data.current?.sortable?.containerId;
+      const overContainer = over?.data.current?.sortable?.containerId;
+
+      if (activeContainer === 'task-pool' && overContainer === 'task-pool' && over) {
+        if (active.id !== over.id) {
+          const oldIndex = taskPoolTasks.findIndex(task => task.id === active.id);
+          const newIndex = taskPoolTasks.findIndex(task => task.id === over.id);
+          const reordered = arrayMove(taskPoolTasks, oldIndex, newIndex);
+          await reorderTasks(reordered);
+        }
+        setDraggingTaskId(null);
+        setDropPreview(null);
+        return;
+      }
+
+      const slot = getDropSlotFromPointer(pointerRef.current);
+      if (slot) {
+        await scheduleTask(activeTask, slot);
+      }
+
+      setDraggingTaskId(null);
+      setDropPreview(null);
+    },
+    [getDropSlotFromPointer, reorderTasks, scheduleTask, taskPoolTasks],
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setDraggingTaskId(null);
+    setDropPreview(null);
+  }, []);
+
+  const draggingTask = useMemo(() => taskPoolTasks.find(task => task.id === draggingTaskId) ?? null, [draggingTaskId, taskPoolTasks]);
+
+  useEffect(() => {
+    if (draggingTaskId && drawerState === 'closed') {
+      setDrawerState('peek');
+    }
+  }, [draggingTaskId, drawerState]);
+
+  const handleToggleTask = useCallback(
+    (id: string, completed: boolean) => {
+      void updateTask(id, { completed });
+    },
+    [updateTask],
+  );
+
+  const handleDeleteTask = useCallback(
+    (id: string) => {
+      void deleteTask(id);
+    },
+    [deleteTask],
+  );
+
+  const handleAddTask = useCallback(
+    async (title: string, category: string) => {
+      await addTask({
+        title,
+        category: category as TaskPoolTask['category'],
+        completed: false,
+        position: taskPoolTasks.length,
+      });
+    },
+    [addTask, taskPoolTasks.length],
+  );
+
   return (
-    <div className="pb-20">
-      {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-20 border-b border-border">
-        <div className="flex items-center justify-between p-4 max-w-2xl mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold">Oggi</h1>
-            <p className="text-sm text-muted-foreground">
-              {new Date().toLocaleDateString('it-IT', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long' 
-              })}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {permission !== 'granted' && (
-              <Button 
-                onClick={handleRequestNotifications} 
-                size="icon" 
-                variant="outline"
-                className="rounded-full"
-              >
-                <BellOff className="w-5 h-5" />
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+      <div className="pb-20">
+        <div className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-2xl items-center justify-between p-4">
+            <div>
+              <h1 className="text-2xl font-bold">Oggi</h1>
+              <p className="text-sm text-muted-foreground">
+                {new Date().toLocaleDateString('it-IT', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {permission !== 'granted' ? (
+                <Button onClick={handleRequestNotifications} size="icon" variant="outline" className="rounded-full">
+                  <BellOff className="h-5 w-5" />
+                </Button>
+              ) : (
+                <Button size="icon" variant="outline" className="rounded-full" disabled>
+                  <Bell className="h-5 w-5" />
+                </Button>
+              )}
+              <Button onClick={handleCreateNew} size="icon" className="rounded-full">
+                <Plus className="h-5 w-5" />
               </Button>
-            )}
-            {permission === 'granted' && (
-              <Button 
-                size="icon" 
-                variant="outline"
-                className="rounded-full"
-                disabled
-              >
-                <Bell className="w-5 h-5" />
-              </Button>
-            )}
-            <Button onClick={handleCreateNew} size="icon" className="rounded-full">
-              <Plus className="w-5 h-5" />
-            </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Time grid */}
-      <div className="relative max-w-2xl mx-auto">
-        <div className="relative">
-          {hours.map(hour => (
-            <TimeSlot 
-              key={hour} 
-              hour={hour} 
-              isCurrentHour={hour === currentHour}
-            />
-          ))}
-          
-          {/* Current time line */}
-          <CurrentTimeLine />
-          
-          {/* Time blocks */}
-          {todayBlocks.map(block => (
-            <TimeBlockCard
-              key={block.id}
-              block={block}
-              onClick={() => handleBlockClick(block)}
-              currentTime={currentTime}
-            />
-          ))}
+        <div className="relative mx-auto max-w-2xl">
+          <div className="relative" ref={gridRef}>
+            {hours.map(hour => (
+              <TimeSlot key={hour} hour={hour} isCurrentHour={hour === currentHour} />
+            ))}
+
+            <CurrentTimeLine />
+
+            {dropPreview && (
+              <div
+                className="pointer-events-none absolute left-16 right-4"
+                style={{
+                  top: `${((timeToMinutes(dropPreview.start) - DAY_START_MINUTES) / 60) * PIXELS_PER_HOUR}px`,
+                  height: `${((timeToMinutes(dropPreview.end) - timeToMinutes(dropPreview.start)) / 60) * PIXELS_PER_HOUR}px`,
+                }}
+              >
+                <div className="h-full rounded-lg border-2 border-dashed border-primary/70 bg-primary/10" />
+              </div>
+            )}
+
+            {todayBlocks.map(block => (
+              <TimeBlockCard key={block.id} block={block} onClick={() => handleBlockClick(block)} currentTime={currentTime} />
+            ))}
+          </div>
         </div>
+
+        <TimeBlockModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          block={selectedBlock}
+          isCreating={isCreating}
+          date={today}
+        />
       </div>
 
-      {/* Time block modal */}
-      <TimeBlockModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        block={selectedBlock}
-        isCreating={isCreating}
-        date={today}
+      <TaskPoolDrawer
+        tasks={remainingTasks}
+        loading={taskPoolLoading}
+        state={drawerState}
+        onStateChange={setDrawerState}
+        onAddTask={handleAddTask}
+        onToggleTask={handleToggleTask}
+        onDeleteTask={handleDeleteTask}
       />
-    </div>
+
+      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' }}>
+        {draggingTask ? (
+          <div className="w-[90vw] max-w-lg">
+            <TaskPoolRow task={draggingTask} onToggle={() => {}} onDelete={() => {}} />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
 

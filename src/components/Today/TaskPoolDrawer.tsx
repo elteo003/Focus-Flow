@@ -3,10 +3,16 @@ import { motion, useMotionValue, animate } from 'framer-motion';
 import { TaskPoolTask, CategoryType, DEFAULT_CATEGORIES } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { GripVertical, Plus, Folder, Loader2 } from 'lucide-react';
+import { GripVertical, Plus, Folder, Loader2, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { TaskPoolRow } from './TaskPoolRow';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Command, CommandGroup, CommandItem, CommandList, CommandEmpty, CommandInput } from '@/components/ui/command';
 
 const HANDLE_HEIGHT = 52;
 const CATEGORY_OPTIONS = DEFAULT_CATEGORIES.map(category => ({
@@ -41,6 +47,7 @@ export const TaskPoolDrawer = ({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<CategoryType>('other');
   const [adding, setAdding] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const selectedCategory = useMemo(() => CATEGORY_OPTIONS.find(option => option.id === newTaskCategory) ?? CATEGORY_OPTIONS[0], [newTaskCategory]);
 
   useEffect(() => {
@@ -148,37 +155,64 @@ export const TaskPoolDrawer = ({
         <div className="pointer-events-auto flex-1 overflow-hidden px-4 pb-6">
           <div className="mx-auto h-full max-w-lg">
             <form onSubmit={handleAddTask} className="mb-5 flex flex-col gap-3 rounded-[28px] border border-border/60 bg-background/70 p-3.5 backdrop-blur">
-              <Input
-                placeholder="Aggiungi attività rapida..."
-                value={newTaskTitle}
-                onChange={event => setNewTaskTitle(event.target.value)}
-                className="h-12 rounded-[20px] border border-border/60 bg-card/70 px-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORY_OPTIONS.map(option => {
-                    const isActive = option.id === newTaskCategory;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setNewTaskCategory(option.id)}
-                        className={cn(
-                          'flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-all',
-                          isActive
-                            ? 'border-primary/40 bg-primary/10 text-primary'
-                            : 'border-border/60 bg-card/70 text-muted-foreground hover:border-primary/30 hover:text-primary',
-                        )}
-                      >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <Input
+                  placeholder="Aggiungi attività rapida..."
+                  value={newTaskTitle}
+                  onChange={event => setNewTaskTitle(event.target.value)}
+                  className="h-12 flex-1 rounded-[20px] border border-border/60 bg-card/70 px-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
+                />
+                <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex h-11 min-w-[160px] items-center justify-between gap-3 rounded-full border border-border/60 bg-background/90 px-4 text-sm font-medium text-foreground shadow-sm transition hover:border-primary/30 focus:outline-none"
+                    >
+                      <span className="flex items-center gap-2">
                         <span
                           className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: option.color }}
+                          style={{ backgroundColor: selectedCategory.color }}
                         />
-                        {option.name}
-                      </button>
-                    );
-                  })}
-                </div>
+                        {selectedCategory.name}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="bottom"
+                    align="start"
+                    sideOffset={8}
+                    avoidCollisions={false}
+                    className="w-[220px] rounded-2xl border border-border/50 bg-card/95 p-0 shadow-xl backdrop-blur-xl"
+                  >
+                    <Command>
+                      <CommandInput placeholder="Cerca..." className="h-10 border-0 text-sm focus-visible:ring-0" />
+                      <CommandList>
+                        <CommandEmpty>Nessuna categoria</CommandEmpty>
+                        <CommandGroup>
+                          {CATEGORY_OPTIONS.map(option => (
+                            <CommandItem
+                              key={option.id}
+                              value={option.id}
+                              className="flex items-center gap-3 px-4 py-2"
+                              onSelect={(value) => {
+                                setNewTaskCategory(value as CategoryType);
+                                setCategoryOpen(false);
+                              }}
+                            >
+                              <span
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: option.color }}
+                              />
+                              <span className="flex-1 text-sm">{option.name}</span>
+                              {option.id === newTaskCategory && <Check className="h-4 w-4 text-primary" />}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <Button type="submit" size="icon" disabled={adding} className="ml-auto h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
                   {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 </Button>

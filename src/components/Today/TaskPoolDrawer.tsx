@@ -103,7 +103,7 @@ export const TaskPoolDrawer = ({
     <>
       <motion.div
         className={cn(
-          'fixed inset-0 z-40 bg-background/60 backdrop-blur-sm transition-opacity',
+          'fixed inset-0 z-[55] bg-background/60 backdrop-blur-sm transition-opacity',
           isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
         )}
         style={{ visibility: isOpen ? 'visible' : 'hidden' }}
@@ -116,7 +116,7 @@ export const TaskPoolDrawer = ({
         dragConstraints={{ top: -10, bottom: yPositions.closed }}
         onDragEnd={handleDragEnd}
         style={{ y: motionY, height: sheetHeight }}
-        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-w-2xl flex-col rounded-t-3xl border-t border-border/60 bg-card/95 shadow-[0_-20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl"
+        className="fixed inset-x-0 bottom-[72px] z-[60] mx-auto flex max-w-2xl flex-col rounded-t-3xl border-t border-border/60 bg-card/95 shadow-[0_-20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl"
       >
         <button
           type="button"

@@ -134,22 +134,11 @@ export const TaskPoolDrawer = ({
       <button
         type="button"
         className={cn(
-          'fixed inset-0 z-[54] bg-background/45 backdrop-blur-sm transition-opacity duration-300',
-          isOpen && !isDraggingFromPool ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+          'fixed inset-0 z-[40] bg-background/45 transition-opacity duration-200',
+          isOpen && !isDraggingFromPool ? 'pointer-events-auto opacity-100 backdrop-blur-sm' : 'pointer-events-none opacity-0 backdrop-blur-0',
         )}
         onClick={() => onStateChange('closed')}
       />
-
-      <div
-        className={cn(
-          'pointer-events-none fixed inset-0 z-[54] flex justify-end sm:pr-6 transition-opacity duration-300',
-          isOpen ? 'opacity-100' : 'opacity-0',
-        )}
-      >
-        <div className="relative flex h-full w-[min(420px,calc(100vw-32px))] flex-col justify-end">
-          <div className="absolute inset-x-0 bottom-0 h-full rounded-[32px] bg-background/70 shadow-[0_25px_60px_-28px_rgba(15,23,42,0.55)] backdrop-blur-xl" />
-        </div>
-      </div>
 
       <motion.div
         drag="y"
@@ -158,7 +147,7 @@ export const TaskPoolDrawer = ({
         dragElastic={0.12}
         onDragEnd={handleDragEnd}
         style={{ y: motionY, height: sheetHeight }}
-        className="pointer-events-auto fixed bottom-[96px] right-4 z-[60] flex w-[min(420px,calc(100vw-32px))] flex-col rounded-[32px] border border-border/40 bg-card/90 shadow-[0_-32px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl transition-colors sm:right-6"
+        className="pointer-events-auto fixed bottom-[96px] right-4 z-[60] flex w-[min(420px,calc(100vw-32px))] flex-col rounded-[32px] border border-border/40 bg-card/95 shadow-[0_-32px_70px_-40px_rgba(15,23,42,0.45)] transition-colors sm:right-6"
       >
         <button
           type="button"

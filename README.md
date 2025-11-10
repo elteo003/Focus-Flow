@@ -1,73 +1,94 @@
-# Welcome to your Lovable project
+# Focus-Flow
 
-## Project info
+ChronoFocus is a time blocking application built with Vite + React, Supabase and shadcn/ui.
 
-**URL**: https://lovable.dev/projects/b95ee404-8000-4a2a-91ff-08c22719b243
+## Prerequisites
 
-## How can I edit this code?
+- Node.js 20+
+- Supabase CLI (`npm install -g supabase`)
+- GitHub account (CI runs on GitHub Actions)
 
-There are several ways of editing your application.
+## Environment variables
 
-**Use Lovable**
+Create a `.env` file in the project root (and configure the same keys on Render):
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b95ee404-8000-4a2a-91ff-08c22719b243) and start prompting.
+```bash
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+You can optionally add environment-specific files such as `.env.production` for Render.
 
-**Use your preferred IDE**
+## Installation & development
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+git clone https://github.com/elteo003/Focus-Flow.git
+cd Focus-Flow
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The dev server runs on [http://localhost:8080](http://localhost:8080).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Supabase migrations
 
-**Use GitHub Codespaces**
+1. Log into Supabase: `supabase login`
+2. Link the project: `supabase link --project-ref <your-project-ref>`
+3. Push migrations and database changes:
+   ```bash
+   supabase db push
+   ```
+   This executes migrations in chronological order (first the table creation, then extensions like `paused_duration`).
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Testing and quality checks
 
-## What technologies are used for this project?
+- `npm run lint` – ESLint (strict rules, zero warnings)
+- `npm test` – Vitest unit tests (utilities like recurrence covered)
+- `npm run build` – production build
 
-This project is built with:
+GitHub Actions (`.github/workflows/ci.yml`) esegue `npm install`, `npm run lint` e `npm run build` su ogni push/PR verso `main`.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deployment to Render
 
-## How can I deploy this project?
+1. Build a Render **Static Site** pointed to this repository.
+2. Build command: `npm install && npm run build`
+3. Publish directory: `dist`
+4. Add the environment variables listed above in Render dashboard.
+5. Add a redirect rule for client-side routing:
+   ```
+   /*  /index.html  200
+   ```
 
-Simply open [Lovable](https://lovable.dev/projects/b95ee404-8000-4a2a-91ff-08c22719b243) and click on Share -> Publish.
+Supabase Edge Functions and database run on Supabase; no server needs to be hosted on Render.
 
-## Can I connect a custom domain to my Lovable project?
+## Project structure (high level)
 
-Yes, you can!
+```
+src/
+  components/
+  contexts/
+  hooks/
+  integrations/
+  pages/
+  utils/
+supabase/
+  migrations/
+  functions/
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- `hooks/useTimeBlocks.ts`: optimistic updates + realtime sync per time blocks
+- `components/Today/*`: timeline UI, modal, timer controls
+- `components/Analytics/AnalyticsView.tsx`: charts and statistics
+- `supabase/migrations`: database schema and incremental changes
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Contributing
+
+1. Create a feature branch
+2. Run `npm run lint && npm test`
+3. Commit and open a Pull Request
+
+## License
+
+MIT

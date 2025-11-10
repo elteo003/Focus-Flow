@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TimeBlockTemplate } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { retry, isRetryableError } from '@/lib/retry';
 
 const DEFAULT_TEMPLATES: TimeBlockTemplate[] = [
   {
@@ -50,7 +48,7 @@ export const useTemplates = () => {
         // For now, use default templates
         // In future, can fetch user-specific templates from DB
         setTemplates(DEFAULT_TEMPLATES);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error fetching templates:', error);
       }
     };

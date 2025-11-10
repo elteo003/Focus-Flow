@@ -23,6 +23,15 @@ const TodayView = () => {
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const currentHour = parseTime(currentTime).hours;
 
+  // Keep selected block in sync with latest data (optimistic updates / realtime)
+  useEffect(() => {
+    if (!selectedBlock) return;
+    const updated = todayBlocks.find(block => block.id === selectedBlock.id);
+    if (updated && updated !== selectedBlock) {
+      setSelectedBlock(updated);
+    }
+  }, [selectedBlock, todayBlocks]);
+
   // Update current time every second for real-time highlight
   useEffect(() => {
     const interval = setInterval(() => {

@@ -1,4 +1,4 @@
-import { formatDate, parseTime, timeToMinutes, minutesToTime } from './dateUtils';
+import { formatDate } from './dateUtils';
 
 export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly';
 
@@ -12,11 +12,11 @@ export const generateRecurringDates = (
   startDate: string,
   recurrence: RecurrenceType,
   endDate?: string,
-  count?: number
+  count?: number,
 ): string[] => {
   const dates: string[] = [startDate];
   const start = new Date(startDate);
-  let current = new Date(start);
+  const currentDate = new Date(start);
   let iterations = 0;
   const maxIterations = 365; // Safety limit
 
@@ -27,31 +27,31 @@ export const generateRecurringDates = (
   const end = endDate ? new Date(endDate) : null;
 
   while (iterations < maxIterations) {
-    iterations++;
+    iterations += 1;
 
     switch (recurrence) {
       case 'daily':
-        current.setDate(current.getDate() + 1);
+        currentDate.setDate(currentDate.getDate() + 1);
         break;
       case 'weekly':
-        current.setDate(current.getDate() + 7);
+        currentDate.setDate(currentDate.getDate() + 7);
         break;
       case 'monthly':
-        current.setMonth(current.getMonth() + 1);
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        break;
+      default:
         break;
     }
 
-    // Check if we've exceeded end date
-    if (end && current > end) {
+    if (end && currentDate > end) {
       break;
     }
 
-    // Check if we've reached count limit
     if (count && dates.length >= count) {
       break;
     }
 
-    dates.push(formatDate(current));
+    dates.push(formatDate(currentDate));
   }
 
   return dates;
@@ -59,27 +59,28 @@ export const generateRecurringDates = (
 
 export const getNextOccurrence = (
   date: string,
-  recurrence: RecurrenceType
+  recurrence: RecurrenceType,
 ): string | null => {
   if (recurrence === 'none') {
     return null;
   }
 
-  const current = new Date(date);
-  const next = new Date(current);
+  const nextDate = new Date(date);
 
   switch (recurrence) {
     case 'daily':
-      next.setDate(next.getDate() + 1);
+      nextDate.setDate(nextDate.getDate() + 1);
       break;
     case 'weekly':
-      next.setDate(next.getDate() + 7);
+      nextDate.setDate(nextDate.getDate() + 7);
       break;
     case 'monthly':
-      next.setMonth(next.getMonth() + 1);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      break;
+    default:
       break;
   }
 
-  return formatDate(next);
+  return formatDate(nextDate);
 };
 

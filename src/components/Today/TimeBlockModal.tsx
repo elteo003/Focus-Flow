@@ -76,13 +76,23 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
   };
 
   const handleToggleSubTask = (id: string) => {
-    setSubTasks(subTasks.map(st => 
+    const updatedSubTasks = subTasks.map(st =>
       st.id === id ? { ...st, completed: !st.completed } : st
-    ));
+    );
+    setSubTasks(updatedSubTasks);
+
+    if (block && !isCreating) {
+      void updateTimeBlock(block.id, { subTasks: updatedSubTasks });
+    }
   };
 
   const handleDeleteSubTask = (id: string) => {
-    setSubTasks(subTasks.filter(st => st.id !== id));
+    const updatedSubTasks = subTasks.filter(st => st.id !== id);
+    setSubTasks(updatedSubTasks);
+
+    if (block && !isCreating) {
+      void updateTimeBlock(block.id, { subTasks: updatedSubTasks });
+    }
   };
 
   const handleSave = async () => {
@@ -149,8 +159,13 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
 
   const handleMarkComplete = () => {
     if (block) {
-      updateTimeBlock(block.id, { completed: !block.completed });
-      toast.success(block.completed ? 'Attività riaperta' : 'Attività completata');
+      const isCompleting = !block.completed;
+      updateTimeBlock(block.id, {
+        completed: isCompleting,
+        status: isCompleting ? 'completed' : 'planned',
+        actualEndTime: isCompleting ? new Date().toISOString() : undefined,
+      });
+      toast.success(isCompleting ? 'Attività completata' : 'Attività impostata come pianificata');
     }
   };
 
@@ -339,7 +354,7 @@ const TimeBlockModal = ({ isOpen, onClose, block, isCreating, date }: TimeBlockM
               </Button>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleMarkComplete}>
-                  {block?.completed ? 'Riapri' : 'Completa'}
+                  {block?.completed ? 'Pianifica di nuovo' : 'Contrassegna completata'}
                   <Check className="w-4 h-4 ml-2" />
                 </Button>
                 <Button onClick={handleSave}>Salva</Button>

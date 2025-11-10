@@ -13,6 +13,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Command, CommandGroup, CommandItem, CommandList, CommandEmpty, CommandInput } from '@/components/ui/command';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const HANDLE_HEIGHT = 52;
 const CATEGORY_OPTIONS = DEFAULT_CATEGORIES.map(category => ({
@@ -49,6 +50,7 @@ export const TaskPoolDrawer = ({
   onCategoryMenuOpenChange,
   isDraggingFromPool = false,
 }: TaskPoolDrawerProps) => {
+  const isMobile = useIsMobile();
   const [viewportHeight, setViewportHeight] = useState<number>(() => (typeof window !== 'undefined' ? window.innerHeight : 800));
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<CategoryType>('other');
@@ -72,8 +74,8 @@ export const TaskPoolDrawer = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const sheetHeight = useMemo(() => Math.min(viewportHeight * 0.6, 540), [viewportHeight]);
-  const peekHeight = useMemo(() => Math.max(sheetHeight * 0.45, 280), [sheetHeight]);
+  const sheetHeight = useMemo(() => Math.min(viewportHeight * (isMobile ? 0.7 : 0.55), isMobile ? 520 : 480), [viewportHeight, isMobile]);
+  const peekHeight = useMemo(() => Math.max(sheetHeight * (isMobile ? 0.55 : 0.5), isMobile ? 260 : 260), [sheetHeight, isMobile]);
 
   const yPositions = useMemo(
     () => ({
@@ -146,16 +148,25 @@ export const TaskPoolDrawer = ({
         dragConstraints={{ top: -20, bottom: yPositions.closed }}
         dragElastic={0.12}
         onDragEnd={handleDragEnd}
-        style={{ y: motionY, height: sheetHeight }}
-        className="pointer-events-auto fixed bottom-[96px] right-6 z-[60] flex w-[min(360px,calc(100vw-48px))] flex-col rounded-[28px] border border-border/10 bg-white shadow-[0_28px_80px_-36px_rgba(15,23,42,0.45)] transition-colors"
+        style={{
+          y: motionY,
+          height: sheetHeight,
+          bottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 88px)' : '108px',
+          right: isMobile ? 'auto' : 'clamp(32px, 6vw, 72px)',
+          left: isMobile ? '50%' : 'auto',
+        }}
+        className={cn(
+          'pointer-events-auto fixed z-[60] flex w-[min(360px,calc(100vw-56px))] -translate-x-0 flex-col rounded-[24px] border border-border/10 bg-white shadow-[0_35px_85px_-40px_rgba(15,23,42,0.45)] transition-all duration-300',
+          isMobile && '-translate-x-1/2 w-[calc(100vw-32px)]'
+        )}
       >
         <button
           type="button"
-          className="pointer-events-auto flex h-16 items-center justify-between px-7 text-sm font-medium text-muted-foreground"
+          className="pointer-events-auto flex h-16 items-center justify-between px-6 text-sm font-medium text-muted-foreground"
           onClick={() => onStateChange(state === 'peek' ? 'closed' : 'peek')}
         >
           <span className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-muted/70">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-muted/20">
               <Folder className="h-4 w-4 text-muted-foreground/80" />
             </span>
             <div className="flex flex-col text-left">

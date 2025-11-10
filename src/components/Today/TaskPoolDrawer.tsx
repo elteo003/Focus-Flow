@@ -131,7 +131,7 @@ export const TaskPoolDrawer = ({
         dragElastic={0.12}
         onDragEnd={handleDragEnd}
         style={{ y: motionY, height: sheetHeight }}
-        className="fixed inset-x-0 bottom-[96px] z-[60] mx-auto flex max-w-2xl flex-col rounded-[32px] border border-border/40 bg-card/90 shadow-[0_-32px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl transition-colors"
+        className="fixed bottom-[96px] right-4 z-[60] flex w-[min(420px,calc(100vw-32px))] flex-col rounded-[32px] border border-border/40 bg-card/90 shadow-[0_-32px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl transition-colors sm:right-6"
       >
         <button
           type="button"

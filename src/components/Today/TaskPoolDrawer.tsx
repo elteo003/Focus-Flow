@@ -197,7 +197,7 @@ export const TaskPoolDrawer = ({
                     align="start"
                     sideOffset={12}
                     collisionPadding={16}
-                    className="w-[220px] rounded-2xl border border-border/40 bg-card/95 p-0 shadow-xl backdrop-blur-xl"
+                    className="z-[80] w-[220px] rounded-2xl border border-border/40 bg-card/95 p-0 shadow-xl backdrop-blur-xl"
                   >
                     <Command>
                       <CommandInput placeholder="Cerca..." className="h-10 border-0 text-sm focus-visible:ring-0" />

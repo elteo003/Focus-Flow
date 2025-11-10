@@ -169,7 +169,7 @@ const TodayView = () => {
         initialPointerRef.current = pointer;
         updateDropPreview(pointerRef.current);
       }
-      setDrawerState(prev => (prev === 'expanded' ? prev : 'peek'));
+      setDrawerState(prev => (prev === 'closed' ? 'peek' : prev));
     },
     [taskPoolTasks, updateDropPreview],
   );
@@ -241,7 +241,6 @@ const TodayView = () => {
       const slot = getDropSlotFromPointer(pointerRef.current);
       if (slot) {
         await scheduleTask(activeTask, slot);
-        setDrawerState('peek');
       }
 
       setDraggingTaskId(null);

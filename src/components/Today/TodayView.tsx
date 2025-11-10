@@ -71,6 +71,10 @@ const TodayView = () => {
     setDrawerState(previousDrawerStateRef.current);
   }, []);
 
+  const handleDragCancel = useCallback(() => {
+    resetDragState();
+  }, [resetDragState]);
+
   useEffect(() => {
     if (!selectedBlock) return;
     const updated = todayBlocks.find(block => block.id === selectedBlock.id);

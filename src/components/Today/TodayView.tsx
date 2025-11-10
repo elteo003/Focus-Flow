@@ -13,7 +13,7 @@ import { useTaskPool } from '@/hooks/useTaskPool';
 import { formatDate, getCurrentTime, minutesToTime, parseTime, timeToMinutes } from '@/utils/dateUtils';
 import { TaskPoolTask, TimeBlock } from '@/types';
 import { toast } from 'sonner';
-import { TaskPoolDrawer } from './TaskPoolDrawer';
+import TaskPoolDrawer from './TaskPoolDrawer';
 import { TaskPoolRow } from './TaskPoolRow';
 
 const PIXELS_PER_HOUR = 64;

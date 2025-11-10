@@ -3,16 +3,10 @@ import { motion, useMotionValue, animate } from 'framer-motion';
 import { TaskPoolTask, CategoryType, DEFAULT_CATEGORIES } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { GripVertical, Plus, Folder, Loader2, ChevronDown, Check } from 'lucide-react';
+import { GripVertical, Plus, Folder, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { TaskPoolRow } from './TaskPoolRow';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 
 const HANDLE_HEIGHT = 52;
 const CATEGORY_OPTIONS = DEFAULT_CATEGORIES.map(category => ({
@@ -47,12 +41,7 @@ export const TaskPoolDrawer = ({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<CategoryType>('other');
   const [adding, setAdding] = useState(false);
-  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
-
-  const selectedCategory = useMemo(
-    () => CATEGORY_OPTIONS.find(option => option.id === newTaskCategory) ?? CATEGORY_OPTIONS[0],
-    [newTaskCategory],
-  );
+  const selectedCategory = useMemo(() => CATEGORY_OPTIONS.find(option => option.id === newTaskCategory) ?? CATEGORY_OPTIONS[0], [newTaskCategory]);
 
   useEffect(() => {
     const handleResize = () => setViewportHeight(window.innerHeight);
@@ -77,8 +66,9 @@ export const TaskPoolDrawer = ({
   useEffect(() => {
     const animation = animate(motionY, yPositions[state], {
       type: 'spring',
-      stiffness: 240,
-      damping: 28,
+      stiffness: 190,
+      damping: 24,
+      mass: 0.9,
     });
     return animation.stop;
   }, [motionY, state, yPositions]);
@@ -130,25 +120,24 @@ export const TaskPoolDrawer = ({
       <motion.div
         drag="y"
         dragMomentum={false}
-        dragConstraints={{ top: -10, bottom: yPositions.closed }}
+        dragConstraints={{ top: -20, bottom: yPositions.closed }}
+        dragElastic={0.12}
         onDragEnd={handleDragEnd}
         style={{ y: motionY, height: sheetHeight }}
-        className="fixed inset-x-0 bottom-[112px] z-[60] mx-auto flex max-w-2xl flex-col rounded-t-3xl border-t border-border/60 bg-card/95 shadow-[0_-20px_60px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl"
+        className="fixed inset-x-0 bottom-[96px] z-[60] mx-auto flex max-w-2xl flex-col rounded-[32px] border border-border/40 bg-card/90 shadow-[0_-32px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-2xl transition-colors"
       >
         <button
           type="button"
-          className="pointer-events-auto flex h-16 items-center justify-between px-6 text-sm font-medium text-muted-foreground"
+          className="pointer-events-auto flex h-16 items-center justify-between px-7 text-sm font-medium text-muted-foreground"
           onClick={() => onStateChange(state === 'peek' ? 'closed' : 'peek')}
         >
           <span className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-muted">
-              <Folder className="h-4 w-4 text-muted-foreground" />
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-muted/70">
+              <Folder className="h-4 w-4 text-muted-foreground/80" />
             </span>
             <div className="flex flex-col text-left">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground/70">Task-Pool</span>
-              <span className="text-sm font-semibold text-foreground">
-                {taskCount} {taskCount === 1 ? 'attività' : 'attività'}
-              </span>
+              <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/65">Task-Pool</span>
+              <span className="text-sm font-semibold text-foreground">{taskCount} {taskCount === 1 ? 'attività' : 'attività'}</span>
             </div>
           </span>
           <span className="relative flex h-6 w-16 items-center justify-center">
@@ -158,59 +147,42 @@ export const TaskPoolDrawer = ({
 
         <div className="pointer-events-auto flex-1 overflow-hidden px-4 pb-6">
           <div className="mx-auto h-full max-w-lg">
-            <form onSubmit={handleAddTask} className="mb-4 flex flex-col gap-3 rounded-2xl border border-border/70 bg-background/80 p-3 backdrop-blur md:flex-row md:items-center">
+            <form onSubmit={handleAddTask} className="mb-5 flex flex-col gap-3 rounded-[28px] border border-border/60 bg-background/70 p-3.5 backdrop-blur">
               <Input
                 placeholder="Aggiungi attività rapida..."
                 value={newTaskTitle}
                 onChange={event => setNewTaskTitle(event.target.value)}
-                className="border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                className="h-12 rounded-[20px] border border-border/60 bg-card/70 px-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
               />
-              <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex h-10 items-center gap-2 rounded-full border border-border/50 bg-background/90 px-4 text-sm font-medium text-foreground shadow-sm transition hover:border-primary/40 focus:outline-none"
-                  >
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: selectedCategory.color }}
-                    />
-                    <span className="tracking-tight">{selectedCategory.name}</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 rounded-3xl border border-border/50 bg-card/95 p-0 shadow-xl backdrop-blur-xl">
-                  <Command>
-                    <CommandInput placeholder="Cerca categoria..." className="h-10 border-0 focus-visible:ring-0" />
-                    <CommandList>
-                      <CommandEmpty>Nessuna categoria trovata.</CommandEmpty>
-                      <CommandGroup>
-                        {CATEGORY_OPTIONS.map(option => (
-                          <CommandItem
-                            key={option.id}
-                            value={option.id}
-                            className="flex items-center gap-3 px-4 py-2"
-                            onSelect={(value) => {
-                              setNewTaskCategory(value as CategoryType);
-                              setCategoryPopoverOpen(false);
-                            }}
-                          >
-                            <span
-                              className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: option.color }}
-                            />
-                            <span className="flex-1 text-sm">{option.name}</span>
-                            {option.id === newTaskCategory && <Check className="h-4 w-4 text-primary" />}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <Button type="submit" size="icon" disabled={adding} className="h-10 w-10 rounded-full">
-                {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_OPTIONS.map(option => {
+                    const isActive = option.id === newTaskCategory;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setNewTaskCategory(option.id)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-all',
+                          isActive
+                            ? 'border-primary/40 bg-primary/10 text-primary'
+                            : 'border-border/60 bg-card/70 text-muted-foreground hover:border-primary/30 hover:text-primary',
+                        )}
+                      >
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: option.color }}
+                        />
+                        {option.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button type="submit" size="icon" disabled={adding} className="ml-auto h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+                  {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                </Button>
+              </div>
             </form>
 
             <div className="relative h-full overflow-y-auto pb-20">

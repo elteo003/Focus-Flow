@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
 import { TaskPoolTask, CategoryType, DEFAULT_CATEGORIES } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,8 @@ export interface TaskPoolDrawerProps {
   onToggleTask: (id: string, completed: boolean) => void;
   onDeleteTask: (id: string) => void;
   onEditTask?: (id: string) => void;
+  categoryMenuOpen?: boolean;
+  onCategoryMenuOpenChange?: (open: boolean) => void;
 }
 
 export const TaskPoolDrawer = ({
@@ -42,12 +44,24 @@ export const TaskPoolDrawer = ({
   onAddTask,
   onToggleTask,
   onDeleteTask,
+  categoryMenuOpen,
+  onCategoryMenuOpenChange,
 }: TaskPoolDrawerProps) => {
   const [viewportHeight, setViewportHeight] = useState<number>(() => (typeof window !== 'undefined' ? window.innerHeight : 800));
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<CategoryType>('other');
   const [adding, setAdding] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const categoryOpen = categoryMenuOpen ?? uncontrolledOpen;
+  const setCategoryOpen = useCallback(
+    (open: boolean) => {
+      if (categoryMenuOpen === undefined) {
+        setUncontrolledOpen(open);
+      }
+      onCategoryMenuOpenChange?.(open);
+    },
+    [categoryMenuOpen, onCategoryMenuOpenChange],
+  );
   const selectedCategory = useMemo(() => CATEGORY_OPTIONS.find(option => option.id === newTaskCategory) ?? CATEGORY_OPTIONS[0], [newTaskCategory]);
 
   useEffect(() => {
@@ -179,11 +193,11 @@ export const TaskPoolDrawer = ({
                     </button>
                   </PopoverTrigger>
                   <PopoverContent
-                    side="bottom"
+                    side="top"
                     align="start"
-                    sideOffset={8}
-                    avoidCollisions={false}
-                    className="w-[220px] rounded-2xl border border-border/50 bg-card/95 p-0 shadow-xl backdrop-blur-xl"
+                    sideOffset={12}
+                    collisionPadding={16}
+                    className="w-[220px] rounded-2xl border border-border/40 bg-card/95 p-0 shadow-xl backdrop-blur-xl"
                   >
                     <Command>
                       <CommandInput placeholder="Cerca..." className="h-10 border-0 text-sm focus-visible:ring-0" />
@@ -197,7 +211,7 @@ export const TaskPoolDrawer = ({
                               className="flex items-center gap-3 px-4 py-2"
                               onSelect={(value) => {
                                 setNewTaskCategory(value as CategoryType);
-                                setCategoryOpen(false);
+                                requestAnimationFrame(() => setCategoryOpen(false));
                               }}
                             >
                               <span

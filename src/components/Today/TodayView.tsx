@@ -42,6 +42,7 @@ const TodayView = () => {
   const [drawerState, setDrawerState] = useState<DrawerState>('closed');
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [dropPreview, setDropPreview] = useState<{ start: string; end: string } | null>(null);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
 
   const today = formatDate(new Date());
   const todayBlocks = getBlocksForDate(today);
@@ -160,6 +161,7 @@ const TodayView = () => {
       const task = taskPoolTasks.find(item => item.id === event.active.id);
       if (!task) return;
       setDraggingTaskId(task.id);
+      setIsCategoryMenuOpen(false);
       const activator = event.activatorEvent;
       if ('clientX' in activator && 'clientY' in activator) {
         const pointer = { x: activator.clientX, y: activator.clientY };
@@ -253,6 +255,7 @@ const TodayView = () => {
   const handleDragCancel = useCallback(() => {
     setDraggingTaskId(null);
     setDropPreview(null);
+    setIsCategoryMenuOpen(false);
     pointerRef.current = { x: 0, y: 0 };
     initialPointerRef.current = { x: 0, y: 0 };
   }, []);
@@ -366,6 +369,8 @@ const TodayView = () => {
         onAddTask={handleAddTask}
         onToggleTask={handleToggleTask}
         onDeleteTask={handleDeleteTask}
+        categoryMenuOpen={isCategoryMenuOpen}
+        onCategoryMenuOpenChange={setIsCategoryMenuOpen}
       />
 
       <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' }}>

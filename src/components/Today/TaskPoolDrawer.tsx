@@ -195,3 +195,6 @@ export const TaskPoolDrawer = ({
       </motion.div>
     </>
   );
+};
+
+export default TaskPoolDrawer;

@@ -72,8 +72,8 @@ export const TaskPoolDrawer = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const sheetHeight = useMemo(() => Math.min(viewportHeight * 0.85, 720), [viewportHeight]);
-  const peekHeight = useMemo(() => Math.max(sheetHeight * 0.35, 320), [sheetHeight]);
+  const sheetHeight = useMemo(() => Math.min(viewportHeight * 0.6, 540), [viewportHeight]);
+  const peekHeight = useMemo(() => Math.max(sheetHeight * 0.45, 280), [sheetHeight]);
 
   const yPositions = useMemo(
     () => ({
@@ -134,8 +134,8 @@ export const TaskPoolDrawer = ({
       <button
         type="button"
         className={cn(
-          'fixed inset-0 z-[40] bg-background/45 transition-opacity duration-200',
-          isOpen && !isDraggingFromPool ? 'pointer-events-auto opacity-100 backdrop-blur-sm' : 'pointer-events-none opacity-0 backdrop-blur-0',
+          'fixed inset-0 z-[40] bg-background/45 transition-opacity duration-200 backdrop-blur-sm',
+          isOpen && !isDraggingFromPool ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
         )}
         onClick={() => onStateChange('closed')}
       />
@@ -147,7 +147,7 @@ export const TaskPoolDrawer = ({
         dragElastic={0.12}
         onDragEnd={handleDragEnd}
         style={{ y: motionY, height: sheetHeight }}
-        className="pointer-events-auto fixed bottom-[96px] right-4 z-[60] flex w-[min(420px,calc(100vw-32px))] flex-col rounded-[32px] border border-border/40 bg-card/95 shadow-[0_-32px_70px_-40px_rgba(15,23,42,0.45)] transition-colors sm:right-6"
+        className="pointer-events-auto fixed bottom-[96px] right-6 z-[60] flex w-[min(360px,calc(100vw-48px))] flex-col rounded-[28px] border border-border/30 bg-[rgba(22,24,36,0.72)] shadow-[0_24px_60px_-32px_rgba(15,23,42,0.65)] backdrop-blur-lg transition-colors"
       >
         <button
           type="button"
@@ -168,15 +168,15 @@ export const TaskPoolDrawer = ({
           </span>
         </button>
 
-        <div className="pointer-events-auto flex-1 overflow-hidden px-4 pb-6">
-          <div className="mx-auto h-full max-w-lg">
-            <form onSubmit={handleAddTask} className="mb-5 flex flex-col gap-3 rounded-[28px] border border-border/60 bg-background/70 p-3.5 backdrop-blur">
+        <div className="pointer-events-auto flex-1 overflow-hidden px-5 pb-6">
+          <div className="mx-auto h-full max-w-sm">
+            <form onSubmit={handleAddTask} className="mb-4 flex flex-col gap-3 rounded-[22px] border border-border/40 bg-background/65 p-3.5 backdrop-blur">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <Input
                   placeholder="Aggiungi attività rapida..."
                   value={newTaskTitle}
                   onChange={event => setNewTaskTitle(event.target.value)}
-                  className="h-12 flex-1 rounded-[20px] border border-border/60 bg-card/70 px-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="h-11 flex-1 rounded-[18px] border border-border/50 bg-card/70 px-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
                 />
                 <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
                   <PopoverTrigger asChild>
@@ -235,14 +235,14 @@ export const TaskPoolDrawer = ({
               </div>
             </form>
 
-            <div className="relative h-full overflow-y-auto pb-20">
+            <div className="relative h-full overflow-y-auto pb-16">
               {loading ? (
                 <div className="flex h-40 items-center justify-center text-muted-foreground">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Caricamento...
                 </div>
               ) : taskCount === 0 ? (
-                <div className="flex h-40 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+                <div className="flex h-36 flex-col items-center justify-center gap-2 text-center text-muted-foreground/80">
                   <Folder className="h-8 w-8 opacity-40" />
                   <p className="text-sm">Il tuo Task-Pool è vuoto. Aggiungi attività da usare più tardi.</p>
                 </div>

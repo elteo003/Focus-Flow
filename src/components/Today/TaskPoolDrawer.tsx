@@ -147,7 +147,7 @@ export const TaskPoolDrawer = ({
         dragElastic={0.12}
         onDragEnd={handleDragEnd}
         style={{ y: motionY, height: sheetHeight }}
-        className="pointer-events-auto fixed bottom-[96px] right-6 z-[60] flex w-[min(360px,calc(100vw-48px))] flex-col rounded-[28px] border border-border/20 bg-card shadow-[0_28px_80px_-40px_rgba(15,23,42,0.35)] transition-colors"
+        className="pointer-events-auto fixed bottom-[96px] right-6 z-[60] flex w-[min(360px,calc(100vw-48px))] flex-col rounded-[28px] border border-border/10 bg-white shadow-[0_28px_80px_-36px_rgba(15,23,42,0.45)] transition-colors"
       >
         <button
           type="button"
@@ -170,13 +170,13 @@ export const TaskPoolDrawer = ({
 
         <div className="pointer-events-auto flex-1 overflow-hidden px-5 pb-6">
           <div className="mx-auto h-full max-w-sm">
-            <form onSubmit={handleAddTask} className="mb-4 flex flex-col gap-3 rounded-[22px] border border-border/40 bg-background/65 p-3.5 backdrop-blur">
+            <form onSubmit={handleAddTask} className="mb-4 flex flex-col gap-3 rounded-[22px] border border-border/15 bg-white/95 p-3.5 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.35)]">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <Input
                   placeholder="Aggiungi attività rapida..."
                   value={newTaskTitle}
                   onChange={event => setNewTaskTitle(event.target.value)}
-                  className="h-11 flex-1 rounded-[18px] border border-border/50 bg-card/70 px-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="h-11 flex-1 rounded-[18px] border border-border/30 bg-white px-4 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30"
                 />
                 <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
                   <PopoverTrigger asChild>
@@ -242,7 +242,7 @@ export const TaskPoolDrawer = ({
                   Caricamento...
                 </div>
               ) : taskCount === 0 ? (
-                <div className="flex h-36 flex-col items-center justify-center gap-2 text-center text-muted-foreground/80">
+                <div className="flex h-36 flex-col items-center justify-center gap-2 text-center text-muted-foreground/70">
                   <Folder className="h-8 w-8 opacity-40" />
                   <p className="text-sm">Il tuo Task-Pool è vuoto. Aggiungi attività da usare più tardi.</p>
                 </div>
